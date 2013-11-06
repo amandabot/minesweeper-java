@@ -1,62 +1,55 @@
 package minesweeper;
 
-public class Square
-{
+public class Square {
+
     private boolean clicked;
     private int mineCount;
     private Type squareType;
 
-    public enum Type {BLANK, MINE, NUMBER};
+    public enum Type {
 
-    public Square()
-    {
+        BLANK, MINE, NUMBER
+    };
+
+    public Square() {
         clicked = false;
         mineCount = 0;
         squareType = Type.BLANK;
     }
 
-    public void setType(Type squareType)
-    {
-        this.squareType = squareType;
-    }
-
-    public boolean isClicked()
-    {
+    public boolean isClicked() {
         return clicked;
     }
 
-    public void setAsClicked()
-    {
+    public void setAsClicked() {
         clicked = true;
     }
 
-    public int getMineCount()
-    {
+    public int getMineCount() {
         return mineCount;
     }
 
-    public void increaseMineCount()
-    {
+    public void increaseMineCount() {
         mineCount++;
     }
 
-    public boolean isMine()
-    {
+    public boolean isMine() {
         return (this.squareType == Type.MINE);
     }
 
-    public boolean isBlank()
-    {
+    public boolean isBlank() {
         return (this.squareType == Type.BLANK);
     }
 
-    public boolean isNumber()
-    {
+    public boolean isNumber() {
         return (this.squareType == Type.NUMBER);
     }
 
-    public Type getType()
-    {
+    public void setType(Type squareType) {
+        this.squareType = squareType;
+    }
+
+    public Type getType() {
         return squareType;
     }
 }
