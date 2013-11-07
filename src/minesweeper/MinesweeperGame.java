@@ -50,6 +50,7 @@ public class MinesweeperGame {
     private JFrame frame;
     //Holds the Squares that correspond to each grid square on the board
     private Square[][] squaresGrid;
+    private JPanel timerPanel;
     private JPanel labelPanel; //Displays uncovered numbers, mines and blanks
     private JPanel buttonLayer; //Covers the labelPanel to hide mines, etc.
     private CustomDialog customGameDialog; //
@@ -78,9 +79,18 @@ public class MinesweeperGame {
      */
     private MinesweeperGame() {
         initializeSettings();
-        initializeGUIElements();
+        //initializeGUIElements();
         createTimer();
         startNewGame();
+        frame = new JFrame();
+        frame.setJMenuBar(createMenuBar());
+        frame.add(initializeGamePanel());
+        frame.setTitle("Minesweeper");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setResizable(false);
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 
     /**
@@ -93,7 +103,9 @@ public class MinesweeperGame {
         unclickedSquares = (boardHeight * boardWidth) - numOfMines;
         squaresGrid = new Square[boardHeight][boardWidth];
         for (int i = 0; i < boardHeight; i++) {
-            Arrays.fill(squaresGrid[i], new Square());
+            for (int j = 0; j < boardWidth; j++) {
+                squaresGrid[i][j] = new Square();
+            }
         }
 
         int count = 0;
@@ -104,7 +116,7 @@ public class MinesweeperGame {
             column = random.nextInt(boardWidth);
             row = random.nextInt(boardHeight);
 
-            if (squaresGrid[row][column].isBlank()) {
+            if (!squaresGrid[row][column].isMine()) {
                 squaresGrid[row][column].setType(Square.Type.MINE);
 
                 for (int y = row - 1; y < row + 2; y++) {
@@ -147,6 +159,7 @@ public class MinesweeperGame {
      * the button layer which lies over the label layer and hides each square.
      */
     public void createNewBoard() {
+        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 15));
         buttonLayer.setLayout(new GridLayout(boardHeight, boardWidth));
         buttonLayer.setPreferredSize(new Dimension(
                 (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
@@ -157,6 +170,7 @@ public class MinesweeperGame {
         for (int y = 0; y < boardHeight; y++) {
             for (int x = 0; x < boardWidth; x++) {
                 tempButton = new JButton();
+                tempButton.setPreferredSize(new Dimension(SQUARE_SIZE, SQUARE_SIZE));
                 tempButton.addActionListener(new ActionListener() {
                     @Override
                     public void actionPerformed(ActionEvent e) {
@@ -202,6 +216,7 @@ public class MinesweeperGame {
             tempJLabel.setForeground(getColor(count));
         }
         tempJLabel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
+        tempJLabel.setPreferredSize(new Dimension(SQUARE_SIZE, SQUARE_SIZE));
         return tempJLabel;
     }
 
@@ -647,18 +662,30 @@ public class MinesweeperGame {
      * @return the unsized game board
      */
     private JPanel initializeGamePanel() {
-        JPanel timerPanel = new JPanel();
+        timerPanel = new JPanel();
         timerPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 15));
         timerLabel = new JLabel("000");
         timerPanel.add(timerLabel);
+
         buttonLayer = new JPanel();
         buttonLayer.setOpaque(false);
+        buttonLayer.setLayout(new GridLayout(boardHeight, boardWidth));
+        buttonLayer.setPreferredSize(new Dimension(
+                (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
+
         labelPanel = new JPanel();
         labelPanel.setOpaque(true);
+        labelPanel.setLayout(new GridLayout(boardHeight, boardWidth));
+        labelPanel.setPreferredSize(new Dimension(
+                (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
+
         JLayeredPane layeredPane = new JLayeredPane();
         layeredPane.add(labelPanel, new Integer(0));
         layeredPane.add(buttonLayer, new Integer(1));
+        layeredPane.setPreferredSize(new Dimension(boardWidth, boardHeight));
         JPanel panel = new JPanel();
+        panel.setPreferredSize(layeredPane.getPreferredSize());
         panel.setLayout(new BorderLayout());
         panel.add(timerPanel, BorderLayout.NORTH);
         panel.add(layeredPane, BorderLayout.SOUTH);
