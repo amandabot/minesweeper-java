@@ -1,10 +1,15 @@
 package minesweeper;
 
+import javax.swing.JButton;
+import javax.swing.JLabel;
+
 public class Square {
 
     private boolean clicked;
     private int mineCount;
     private Type squareType;
+    private JButton button;
+    private JLabel label;
 
     public enum Type {
 
@@ -15,6 +20,22 @@ public class Square {
         clicked = false;
         mineCount = 0;
         squareType = Type.BLANK;
+    }
+
+    public JLabel getLabel() {
+        return label;
+    }
+
+    public void setLabel(JLabel label) {
+        this.label = label;
+    }
+
+    public JButton getButton() {
+        return button;
+    }
+
+    public void setButton(JButton button) {
+        this.button = button;
     }
 
     public boolean isClicked() {

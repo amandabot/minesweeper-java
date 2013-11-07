@@ -42,16 +42,17 @@ import javax.swing.Timer;
 public class MinesweeperGame {
 
     private final static MinesweeperGame INSTANCE = new MinesweeperGame();
-    private final static int[] bestScores = {999, 999, 999, 0};
     private final static int SQUARE_SIZE = 20;
     private static List<Color> colors;
+    private static Map<String, Integer> bestScores;
     private static Map<String, Integer[]> gameSettings;
-    private static Random random = new Random();
+    private Random random = new Random();
     private JFrame frame;
+    //Holds the Squares that correspond to each grid square on the board
     private Square[][] squaresGrid;
-    private JPanel labelPanel;
-    private JPanel buttonLayer;
-    private CustomDialog customGameDialog;
+    private JPanel labelPanel; //Displays uncovered numbers, mines and blanks
+    private JPanel buttonLayer; //Covers the labelPanel to hide mines, etc.
+    private CustomDialog customGameDialog; //
     private JLabel timerLabel;
     private int boardHeight;
     private int boardWidth;
@@ -64,6 +65,7 @@ public class MinesweeperGame {
 
     /**
      * Returns an instance of a {@code MinesweeperGame }.
+     *
      * @return the {@code MinesweeperGame} instance
      */
     public static MinesweeperGame getInstance() {
@@ -90,11 +92,8 @@ public class MinesweeperGame {
         currentTime = 0;
         unclickedSquares = (boardHeight * boardWidth) - numOfMines;
         squaresGrid = new Square[boardHeight][boardWidth];
-
-        for (Square[] s : squaresGrid) {
-            for (Square square : s) {
-                square = new Square();
-            }
+        for (int i = 0; i < boardHeight; i++) {
+            Arrays.fill(squaresGrid[i], new Square());
         }
 
         int count = 0;
@@ -117,8 +116,36 @@ public class MinesweeperGame {
             }
         }
         createNewBoard();
+        packAndShowFrame();
     }
 
+    /**
+     * Increments the mine count of the {@code Square} at ({@code column},
+     * {@code row}) unless the Square is already a mine or if it lies outside
+     * the bounds of the board.
+     *
+     * @param row the y coordinate of the neighbor {@code Square}
+     * @param column the x coordinate of the neighbor {@code Square}
+     */
+    private void setNeighborMineCount(int row, int column) {
+        //Prevents accessing out of bounds array indices
+        if (column < 0 || column >= boardWidth || row < 0 || row >= boardHeight) {
+            return;
+        }
+
+        //Only NUMBER and BLANK Squares are incremented
+        if (!(squaresGrid[row][column].isMine())) {
+            squaresGrid[row][column].increaseMineCount();
+            squaresGrid[row][column].setType(Square.Type.NUMBER);
+        }
+    }
+
+    /**
+     * Creates GUI elements dependent on the game settings and previously
+     * initialized in the constructor. These elements include the label layer
+     * which displays whether a square is a bomb, blank, or number square, and
+     * the button layer which lies over the label layer and hides each square.
+     */
     public void createNewBoard() {
         buttonLayer.setLayout(new GridLayout(boardHeight, boardWidth));
         buttonLayer.setPreferredSize(new Dimension(
@@ -138,143 +165,20 @@ public class MinesweeperGame {
                             return;
                         }
 
-                        //Check for first click, start timer if it is;
+                        //Check for first click, start timer if it is
                         if (first) {
                             first = false;
                             timer.start();
                         }
-
-                        JButton button = (JButton) e.getSource();
-                        Point p = button.getLocation();
-                        int row = (int) (p.getY() / SQUARE_SIZE);
-                        int column = (int) (p.getX() / SQUARE_SIZE);
-//
-//                        if (squaresGrid[Y][X].isMine()) {
-//                            timer.stop();
-//                            gameOver = true;
-//                            results = processMine();
-//                            for (a = 0; a < boardHeight; a++) {
-//                                for (b = 0; b < BoardWidth; b++) {
-//                                    if (results[a][b]) {
-//                                        fieldButtons[a][b].setVisible(false);
-//                                    }
-//                                }
-//                            }
-//                            fieldButtons[Y][X].setVisible(false);
-//                            fieldLabels[Y][X].setOpaque(true);
-//                            fieldLabels[Y][X].setBackground(Color.RED);
-//                            timerLabel.setText("Game Over: " + String.format("%03d", currentTime));
-//                            return;
-//                        } else if (squaresGrid[Y][X].isBlank()) {
-//                            results = processBlank(Y, X);
-//                            for (a = 0; a < boardHeight; a++) {
-//                                for (b = 0; b < BoardWidth; b++) {
-//                                    if (results[a][b]) {
-//                                        fieldButtons[a][b].setVisible(false);
-//                                    }
-//                                }
-//                            }
-//                        } //This is a number
-//                        else {
-//                            processNumber(Y, X);
-//                            fieldButtons[Y][X].setVisible(false);
-//                        }
-//
-//                        if (unclickedSquares == 0) {
-//                            timer.stop();
-//                            gameOver = true;
-//                            if (getBestScores()[getType()] > currentTime) {
-//                                setBestScore(currentTime, getType());
-//                            }
-//                            timerLabel.setText("You Win!: " + String.format("%03d", currentTime));
-//                            saveSettings();
-//                        }
+                        processButton((JButton) e.getSource());
                     }
                 });
+                squaresGrid[y][x].setButton(tempButton);
                 buttonLayer.add(tempButton);
-                labelPanel.add(createLabel(squaresGrid[y][x]));
-            }
-        }
-    }
 
-    //Used in startNewGame(); Increments the mine count of all squares within
-    //a distance of 1 from the square (Y, X)
-    private void setNeighborMineCount(int Y, int X) {
-        //Prevents accessing out of bounds array indices
-        if (X < 0 || X >= boardWidth || Y < 0 || Y >= boardHeight) {
-            return;
-        }
-
-        if (!(squaresGrid[Y][X].isMine())) {
-            squaresGrid[Y][X].increaseMineCount();
-            squaresGrid[Y][X].setType(Square.Type.NUMBER);
-        }
-    }
-
-    //The method checks if the square is a MINE, BLANK, or NUMBER, and
-    //returns the corresponding response
-    public Square.Type checkResult(int Y, int X) {
-        return squaresGrid[Y][X].getType();
-    }
-
-    //Returns fieldMines array with a list of squares designated as mines
-    public boolean[][] processMine() {
-        boolean[][] fieldMines = new boolean[boardHeight][boardWidth];
-
-        for (int a = 0; a < boardHeight; a++) {
-            for (int b = 0; b < boardWidth; b++) {
-                if (squaresGrid[a][b].isMine()) {
-                    fieldMines[a][b] = true;
-                }
-            }
-        }
-        return fieldMines;
-    }
-
-    //Marks this NUMBER square as clicked and decrements unclicked count
-    public void processNumber(int Y, int X) {
-        squaresGrid[Y][X].setAsClicked();
-        unclickedSquares--;
-    }
-
-    //Returns a list of blank and numbered spaces; the first 2 rows of the array
-    //are the coordinates of the item; the third space is the number of mines.
-    //Blanks are indicated by a 0 mine count
-    public boolean[][] processBlank(int Y, int X) {
-        boolean[][] results = new boolean[boardHeight][boardWidth];
-        results[Y][X] = true;
-        squaresGrid[Y][X].setAsClicked();
-        unclickedSquares--;
-
-        for (int a = Y - 1; a < Y + 2; a++) {
-            for (int b = X - 1; b < X + 2; b++) {
-                checkNeighborSquares(a, b, results);
-            }
-        }
-        return results;
-    }
-
-    //Y, X is the position in the field array of this square; results is the
-    //array of squares to be changed in the GUI. index is the array index.
-    //If this neighbor is a blank, the neighbors are checked for more blanks
-    //recursively until there are no more blank spaces connected here.
-    public void checkNeighborSquares(int Y, int X, boolean[][] results) {
-        //Prevents accessing out of bounds array indices,
-        //or if this has been checked already
-        if (X < 0 || X >= boardWidth || Y < 0 || Y >= boardHeight
-                || (results[Y][X]) || squaresGrid[Y][X].isClicked()) {
-            return;
-        }
-
-        results[Y][X] = true;
-        squaresGrid[Y][X].setAsClicked();
-        unclickedSquares--;
-
-        if (squaresGrid[Y][X].isBlank()) {
-            for (int a = Y - 1; a < Y + 2; a++) {
-                for (int b = X - 1; b < X + 2; b++) {
-                    checkNeighborSquares(a, b, results);
-                }
+                JLabel tempLabel = createLabel(squaresGrid[y][x]);
+                squaresGrid[y][x].setLabel(tempLabel);
+                labelPanel.add(tempLabel);
             }
         }
     }
@@ -288,14 +192,105 @@ public class MinesweeperGame {
      */
     private JLabel createLabel(Square square) {
         JLabel tempJLabel = new JLabel(" ");
+        int count;
 
         if (square.isMine()) {
             tempJLabel.setText("B");
         } else if (square.isNumber()) {
-            tempJLabel.setText(Integer.toString(square.getMineCount()));
+            count = square.getMineCount();
+            tempJLabel.setText(Integer.toString(count));
+            tempJLabel.setForeground(getColor(count));
         }
         tempJLabel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY));
         return tempJLabel;
+    }
+
+    /**
+     * Updates the status of the board based on the type of button clicked.
+     *
+     * @param button the clicked button to be processed
+     */
+    private void processButton(JButton button) {
+
+        Point p = button.getLocation();
+        int row = (int) (p.getY() / SQUARE_SIZE);
+        int column = (int) (p.getX() / SQUARE_SIZE);
+        Square square = squaresGrid[row][column];
+
+        if (square.isMine()) {
+            processMine(square);
+        } else {
+            processNumberOrBlank(row, column);
+        }
+        checkForWin();
+    }
+
+    /**
+     * Checks if the game is in a won state and stops the game if that is the
+     * case.
+     */
+    private void checkForWin() {
+        if (unclickedSquares == 0) {
+            timer.stop();
+            gameOver = true;
+            if (bestScores.get(gameType) > currentTime) {
+                bestScores.put(gameType, currentTime);
+            }
+            timerLabel.setText("You Win!: " + String.format("%03d", currentTime));
+            saveSettings();
+        }
+    }
+
+    /**
+     * Ends the game and shows all remaining bombs on the board.
+     *
+     * @param square the mine which was clicked
+     */
+    private void processMine(Square square) {
+        timer.stop();
+        gameOver = true;
+        timerLabel.setText("Game Over: " + String.format("%03d", currentTime));
+
+        //Removes the buttons over any mine on the board
+        for (int row = 0; row < boardHeight; row++) {
+            for (int column = 0; column < boardWidth; column++) {
+                if (squaresGrid[row][column].isMine()) {
+                    squaresGrid[row][column].getButton().setVisible(false);
+                }
+            }
+        }
+        square.getLabel().setOpaque(true);
+        square.getLabel().setBackground(Color.RED);
+    }
+
+    /**
+     * Updates the board after a NUMBER or BLANK {@code Square} is clicked. The
+     * {@code Square} is hidden and marked as clicked, and the
+     * {@code unclickedSquares} field is decremented. For a blank
+     * {@code Square}, the surrounding neighbors are recursively checked and
+     * processed until no remaining BLANK neighbors are present.
+     *
+     * @param row the row of the {@code Square} to be checked
+     * @param column the column of the {@code Square} to be checked
+     */
+    private void processNumberOrBlank(int row, int column) {
+        //Checks if the square is unclicked and within the bounds of the board
+        if (column < 0 || column >= boardWidth || row < 0 || row >= boardHeight
+                || squaresGrid[row][column].isClicked()) {
+            return;
+        }
+        Square square = squaresGrid[row][column];
+        square.getButton().setVisible(false);
+        square.setAsClicked();
+        unclickedSquares--;
+
+        if (square.isBlank()) {
+            for (int y = row - 1; y < row + 2; y++) {
+                for (int x = column - 1; x < column + 2; x++) {
+                    processNumberOrBlank(y, x);
+                }
+            }
+        }
     }
 
     /**
@@ -405,20 +400,32 @@ public class MinesweeperGame {
         }
     }
 
-    //Game settings methods below
-    public void setBestScore(int score, int type) {
-        bestScores[type] = score;
-    }
-
+    /**
+     * Saves the current settings of the game, including the game type, height
+     * and width of the board, number of mines, and the best scores for each
+     * skill level. Displays an error message if the settings were not saved
+     * correctly.
+     */
     public void saveSettings() {
         try {
             try (PrintWriter out = new PrintWriter(
                     new FileWriter("settings"))) {
-                out.println(boardHeight + "/" + boardWidth + "/" + numOfMines + "/"
-                        + bestScores[0] + "/" + bestScores[1] + "/" + bestScores[2]
-                        + "/" + gameType);
+                out.println(String.format(
+                        "%s/%d/%d/%d/%d/%d/%d",
+                        gameType,
+                        boardHeight,
+                        boardWidth,
+                        numOfMines,
+                        bestScores.get("beginner"),
+                        bestScores.get("intermediate"),
+                        bestScores.get("expert")));
             }
         } catch (IOException e) {
+            JOptionPane.showMessageDialog(
+                    frame,
+                    "Could not save settings.",
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -428,34 +435,34 @@ public class MinesweeperGame {
      * error in reading them, the default skill level is chosen.
      */
     private void readPreviousSettings() {
-
-        String temp;
-        String[] typesAndScores;
-
-        //Settings file: these lines indicate previous height, width, 
-        //number of mines, best scores (beginner, intermediate, expert), 
-        //and type (beginner (0), intermediate (1), expert (2), custom (3)
-
         try {
+            String temp;
             try (BufferedReader io = new BufferedReader(
                     new FileReader("settings"))) {
                 temp = io.readLine();
             }
-            typesAndScores = temp.split("/");
+            String[] typesAndScores = temp.split("/");
 
-            boardHeight = Integer.parseInt(typesAndScores[0]);
-            boardWidth = Integer.parseInt(typesAndScores[1]);
-            numOfMines = Integer.parseInt(typesAndScores[2]);
-            bestScores[0] = Integer.parseInt(typesAndScores[3]);
-            bestScores[1] = Integer.parseInt(typesAndScores[4]);
-            bestScores[2] = Integer.parseInt(typesAndScores[5]);
-            gameType = typesAndScores[6];
-        } catch (NumberFormatException N) {
-            System.out.println("NFE");
-        } catch (FileNotFoundException F) {
-            System.out.println("FNFE");
-        } catch (IOException E) {
-            System.out.println("IOE");
+            setGameType("beginner"); //default choice
+            temp = typesAndScores[0];
+            if (temp.equalsIgnoreCase("intermediate")
+                    || temp.equalsIgnoreCase("expert")) {
+                setGameType(temp);
+            } else if (temp.equalsIgnoreCase("custom")) {
+                boardHeight = Integer.parseInt(typesAndScores[0]);
+                boardWidth = Integer.parseInt(typesAndScores[1]);
+                numOfMines = Integer.parseInt(typesAndScores[2]);
+            }
+            bestScores.put("beginner", Integer.parseInt(typesAndScores[3]));
+            bestScores.put("intermediate", Integer.parseInt(typesAndScores[4]));
+            bestScores.put("expert", Integer.parseInt(typesAndScores[5]));
+        } catch (NumberFormatException | FileNotFoundException e) {
+            //In case of a parse error or file reading error, the default game 
+            //type is beginner. The best scores are initialized to default values as
+            //well.
+            setGameType("beginner");
+        } catch (IOException e) {
+            setGameType("beginner");
         }
     }
 
@@ -482,6 +489,10 @@ public class MinesweeperGame {
         gameSettings.put("expert", new Integer[]{16, 30, 99});
         gameSettings.put("custom", new Integer[]{16, 30, 40});
 
+        bestScores = new HashMap<>();
+        bestScores.put("beginner", new Integer(999));
+        bestScores.put("intermediate", new Integer(999));
+        bestScores.put("expert", new Integer(999));
         readPreviousSettings();
     }
 
@@ -562,7 +573,10 @@ public class MinesweeperGame {
         custom.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                customGameDialog = new CustomDialog(frame);
+                //Check if the Custom Dialog has been instantiated yet
+                if (customGameDialog == null) {
+                    customGameDialog = new CustomDialog(frame);
+                }
                 customGameDialog.setDialogFields();
                 customGameDialog.setVisible(true);
             }
@@ -579,7 +593,9 @@ public class MinesweeperGame {
                 JOptionPane.showMessageDialog(frame,
                         String.format(
                         "Beginner: %s\nIntermediate: %s\n Expert: %s",
-                        bestScores[0], bestScores[1], bestScores[2]),
+                        bestScores.get("beginner"),
+                        bestScores.get("intermediate"),
+                        bestScores.get("expert")),
                         "Best Times",
                         JOptionPane.PLAIN_MESSAGE);
             }
@@ -633,6 +649,7 @@ public class MinesweeperGame {
     private JPanel initializeGamePanel() {
         JPanel timerPanel = new JPanel();
         timerPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
+        timerLabel = new JLabel("000");
         timerPanel.add(timerLabel);
         buttonLayer = new JPanel();
         buttonLayer.setOpaque(false);
