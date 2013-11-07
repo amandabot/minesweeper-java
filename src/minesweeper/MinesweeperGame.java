@@ -47,22 +47,23 @@ public class MinesweeperGame {
     private static Map<String, Integer> bestScores;
     private static Map<String, Integer[]> gameSettings;
     private Random random = new Random();
-    private JFrame frame;
-    //Holds the Squares that correspond to each grid square on the board
-    private Square[][] squaresGrid;
-    private JPanel timerPanel;
+    private JFrame frame; //The game window
+    private Square[][] squaresGrid; //Represents each square on the board
+    private JPanel timerPanel; //Holds the timer label
     private JPanel labelPanel; //Displays uncovered numbers, mines and blanks
     private JPanel buttonLayer; //Covers the labelPanel to hide mines, etc.
-    private CustomDialog customGameDialog; //
-    private JLabel timerLabel;
+    private JLayeredPane layeredPane; //Holds the button and label panels
+    private CustomDialog customGameDialog; //Allows for the creation of a custom game
+    private JLabel timerLabel; //Displays the elapsed play time
     private int boardHeight;
     private int boardWidth;
     private int numOfMines;
-    private int unclickedSquares;
+    private int unclickedSquares; //Squares not yet uncovered
     private int currentTime;
     private Timer timer;
-    private boolean gameOver, first;
-    private String gameType;
+    private boolean gameOver; //Indicates the game has reached a finished state
+    private boolean first; //Indicates the first button has been clicked
+    private String gameType; //The skill level of this game
 
     /**
      * Returns an instance of a {@code MinesweeperGame }.
@@ -79,27 +80,21 @@ public class MinesweeperGame {
      */
     private MinesweeperGame() {
         initializeSettings();
-        //initializeGUIElements();
+        initializeGUIElements();
         createTimer();
         startNewGame();
-        frame = new JFrame();
-        frame.setJMenuBar(createMenuBar());
-        frame.add(initializeGamePanel());
-        frame.setTitle("Minesweeper");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
     }
 
     /**
      * Starts a new game using the settings for the
      */
     private void startNewGame() {
+        timer.stop();
         gameOver = false;
         first = true;
         currentTime = 0;
+
+        timerLabel.setText(String.format("%d", currentTime));
         unclickedSquares = (boardHeight * boardWidth) - numOfMines;
         squaresGrid = new Square[boardHeight][boardWidth];
         for (int i = 0; i < boardHeight; i++) {
@@ -159,13 +154,16 @@ public class MinesweeperGame {
      * the button layer which lies over the label layer and hides each square.
      */
     public void createNewBoard() {
-        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 15));
+        //Remove previous components and resize panels for new game
+        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 25));
+        buttonLayer.removeAll();
         buttonLayer.setLayout(new GridLayout(boardHeight, boardWidth));
-        buttonLayer.setPreferredSize(new Dimension(
-                (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
+        buttonLayer.setBounds(0, 0, boardWidth * SQUARE_SIZE, boardHeight * SQUARE_SIZE);
+        labelPanel.removeAll();
         labelPanel.setLayout(new GridLayout(boardHeight, boardWidth));
-        labelPanel.setPreferredSize(new Dimension(
-                (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
+        labelPanel.setBounds(0, 0, boardWidth * SQUARE_SIZE, boardHeight * SQUARE_SIZE);
+        layeredPane.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, boardHeight * SQUARE_SIZE));
+
         JButton tempButton;
         for (int y = 0; y < boardHeight; y++) {
             for (int x = 0; x < boardWidth; x++) {
@@ -178,13 +176,14 @@ public class MinesweeperGame {
                         if (gameOver) {
                             return;
                         }
-
+                        JButton button = (JButton) e.getSource();
                         //Check for first click, start timer if it is
                         if (first) {
                             first = false;
+                            //checkFirstClick(button);
                             timer.start();
                         }
-                        processButton((JButton) e.getSource());
+                        processButton(button);
                     }
                 });
                 squaresGrid[y][x].setButton(tempButton);
@@ -205,7 +204,7 @@ public class MinesweeperGame {
      * @return the {@code JLabel} object
      */
     private JLabel createLabel(Square square) {
-        JLabel tempJLabel = new JLabel(" ");
+        JLabel tempJLabel = new JLabel(" ", JLabel.CENTER);
         int count;
 
         if (square.isMine()) {
@@ -220,6 +219,45 @@ public class MinesweeperGame {
         return tempJLabel;
     }
 
+    //Not working properly. setNeighborMineCount() only increments mine counts
+    //while this would require the count to be decremented.
+    /**
+     * Checks if the first-clicked button is mine and changes its location if it
+     * is.
+     *
+     * @param button the button to be checked
+     */
+    /*private void checkFirstClick(JButton button) {
+     Point p = button.getLocation();
+     int y = (int) (p.getY() / SQUARE_SIZE);
+     int x = (int) (p.getX() / SQUARE_SIZE);
+     Square source = squaresGrid[y][x];
+     if (!source.isMine()) {
+     return;
+     }
+     int row;
+     int column = 0;
+     //Find a square that is not a mine
+     for (row = 0; row < boardHeight; row++) {
+     for (column = 0; column < boardWidth; column++) {
+     if (!squaresGrid[row][column].isMine()) {
+     squaresGrid[row][column].setType(Square.Type.MINE);
+     break;
+     }
+     }
+     }
+     //Update that mine counts of that square's neighbors
+     for (int yIndex = row - 1; yIndex < row + 2; yIndex++) {
+     for (int xIndex = column - 1; xIndex < column + 2; xIndex++) {
+     setNeighborMineCount(yIndex, xIndex);
+     }
+     }
+     for (int i = y - 1; i < y + 2; i++) {
+     for (int j = x - 1; j < x + 2; j++) {
+     setNeighborMineCount(y, x);
+     }
+     }
+     } */
     /**
      * Updates the status of the board based on the type of button clicked.
      *
@@ -251,7 +289,7 @@ public class MinesweeperGame {
             if (bestScores.get(gameType) > currentTime) {
                 bestScores.put(gameType, currentTime);
             }
-            timerLabel.setText("You Win!: " + String.format("%03d", currentTime));
+            timerLabel.setText(String.format("You Win!: %d", currentTime));
             saveSettings();
         }
     }
@@ -264,7 +302,7 @@ public class MinesweeperGame {
     private void processMine(Square square) {
         timer.stop();
         gameOver = true;
-        timerLabel.setText("Game Over: " + String.format("%03d", currentTime));
+        timerLabel.setText(String.format("Game Over!: %d", currentTime));
 
         //Removes the buttons over any mine on the board
         for (int row = 0; row < boardHeight; row++) {
@@ -318,101 +356,6 @@ public class MinesweeperGame {
      */
     private Color getColor(int count) {
         return colors.get(count - 1);
-    }
-
-//This class creates a dialog used to accept input for a custom game
-    class CustomDialog extends JDialog {
-
-        JLabel heightLabel, widthLabel, minesLabel;
-        JTextField heightText, widthText, minesText;
-        JButton okButton, cancelButton;
-        JPanel customPanel;
-
-        public CustomDialog(JFrame frame) {
-            super(frame, true);
-            customPanel = new JPanel();
-            customPanel.setLayout(new GridLayout(4, 2, 5, 5));
-            customPanel.setPreferredSize(new Dimension(215, 156));
-            customPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-
-            heightLabel = new JLabel("Height", JLabel.CENTER);
-            widthLabel = new JLabel("Width", JLabel.CENTER);
-            minesLabel = new JLabel("Number of Mines", JLabel.CENTER);
-            heightText = new JTextField(2);
-            heightText.setText(Integer.toString(boardHeight));
-            widthText = new JTextField(2);
-            widthText.setText(Integer.toString(boardWidth));
-            minesText = new JTextField(3);
-            minesText.setText(Integer.toString(numOfMines));
-
-            okButton = new JButton("OK");
-            okButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-            okButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    int h, w, n;
-
-                    try {
-                        h = Integer.parseInt(heightText.getText());
-                        w = Integer.parseInt(widthText.getText());
-                        n = Integer.parseInt(minesText.getText());
-                    } //If the input is invalid, the squaresGrid remains as is
-                    catch (NumberFormatException nfe) {
-                        setVisible(false);
-                        createNewBoard();
-                        return;
-                    }
-
-                    //Checks limits for height, width, number of mines. If the height or
-                    //width is too low, it selects the lower bound; too high, and the
-                    //upper bound is chosen. Mine count can be from 10 to the product of
-                    //(height - 1) and (width - 1).
-                    h = Math.min(h, 24);
-                    h = Math.max(h, 9);
-                    w = Math.min(w, 30);
-                    w = Math.max(w, 9);
-                    n = Math.min(n, ((h - 1) * (w - 1)));
-                    n = Math.max(n, 10);
-
-                    //Set height, width, mine count, type for squaresGrid
-                    boardHeight = h;
-                    boardWidth = w;
-                    numOfMines = n;
-                    //setType(3);
-
-                    setVisible(false);
-                    createNewBoard();
-                }
-            });
-
-            cancelButton = new JButton("Cancel");
-            cancelButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-            cancelButton.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    setVisible(false);
-                    startNewGame();
-                }
-            });
-
-            customPanel.add(heightLabel);
-            customPanel.add(heightText);
-            customPanel.add(widthLabel);
-            customPanel.add(widthText);
-            customPanel.add(minesLabel);
-            customPanel.add(minesText);
-            customPanel.add(okButton);
-            customPanel.add(cancelButton);
-            add(customPanel);
-            pack();
-        }
-
-        public void setDialogFields() {
-            //Set height, width, mine count for this dialog
-            heightText.setText(Integer.toString(boardHeight));
-            widthText.setText(Integer.toString(boardWidth));
-            minesText.setText(Integer.toString(numOfMines));
-        }
     }
 
     /**
@@ -492,7 +435,7 @@ public class MinesweeperGame {
                 Color.GREEN,
                 Color.RED,
                 Color.MAGENTA,
-                Color.YELLOW,
+                Color.BLACK,
                 Color.ORANGE,
                 Color.DARK_GRAY,
                 Color.WHITE));
@@ -533,7 +476,7 @@ public class MinesweeperGame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 currentTime = Math.min(999, currentTime + 1);
-                timerLabel.setText(String.format("%03d", currentTime));
+                timerLabel.setText(String.format("%d", currentTime));
             }
         });
         timer.setInitialDelay(0);
@@ -567,20 +510,20 @@ public class MinesweeperGame {
         JRadioButtonMenuItem beginner = new JRadioButtonMenuItem("Beginner");
         beginner.setMnemonic('B');
         addActionListener(beginner, "beginner");
-        ButtonGroup BGmenuBar = new ButtonGroup();
-        BGmenuBar.add(beginner);
+        ButtonGroup buttonGroup = new ButtonGroup();
+        buttonGroup.add(beginner);
         gameMenu.add(beginner);
 
         JRadioButtonMenuItem intermediate = new JRadioButtonMenuItem("Intermediate");
         intermediate.setMnemonic('I');
         addActionListener(intermediate, "intermediate");
-        BGmenuBar.add(intermediate);
+        buttonGroup.add(intermediate);
         gameMenu.add(intermediate);
 
         JRadioButtonMenuItem expert = new JRadioButtonMenuItem("Expert");
         expert.setMnemonic('E');
         addActionListener(expert, "expert");
-        BGmenuBar.add(expert);
+        buttonGroup.add(expert);
         gameMenu.add(expert);
 
         JRadioButtonMenuItem custom = new JRadioButtonMenuItem("Custom...");
@@ -596,7 +539,7 @@ public class MinesweeperGame {
                 customGameDialog.setVisible(true);
             }
         });
-        BGmenuBar.add(custom);
+        buttonGroup.add(custom);
         gameMenu.add(custom);
         gameMenu.addSeparator();
 
@@ -664,32 +607,23 @@ public class MinesweeperGame {
     private JPanel initializeGamePanel() {
         timerPanel = new JPanel();
         timerPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 15));
         timerLabel = new JLabel("000");
         timerPanel.add(timerLabel);
 
         buttonLayer = new JPanel();
         buttonLayer.setOpaque(false);
-        buttonLayer.setLayout(new GridLayout(boardHeight, boardWidth));
-        buttonLayer.setPreferredSize(new Dimension(
-                (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
-
         labelPanel = new JPanel();
         labelPanel.setOpaque(true);
-        labelPanel.setLayout(new GridLayout(boardHeight, boardWidth));
-        labelPanel.setPreferredSize(new Dimension(
-                (boardWidth * SQUARE_SIZE), (boardHeight * SQUARE_SIZE)));
 
-        JLayeredPane layeredPane = new JLayeredPane();
+        layeredPane = new JLayeredPane();
         layeredPane.add(labelPanel, new Integer(0));
         layeredPane.add(buttonLayer, new Integer(1));
-        layeredPane.setPreferredSize(new Dimension(boardWidth, boardHeight));
-        JPanel panel = new JPanel();
-        panel.setPreferredSize(layeredPane.getPreferredSize());
-        panel.setLayout(new BorderLayout());
-        panel.add(timerPanel, BorderLayout.NORTH);
-        panel.add(layeredPane, BorderLayout.SOUTH);
-        return panel;
+
+        JPanel gameBoard = new JPanel();
+        gameBoard.setLayout(new BorderLayout());
+        gameBoard.add(timerPanel, BorderLayout.NORTH);
+        gameBoard.add(layeredPane, BorderLayout.SOUTH);
+        return gameBoard;
     }
 
     /**
@@ -714,5 +648,111 @@ public class MinesweeperGame {
         frame.pack();
         frame.setLocationRelativeTo(null);
         frame.setVisible(true);
+
+
+    }
+
+    /**
+     * Creates a dialog for creating a custom game. The dialog enforces bounds
+     * on the game settings and validates inputs to ensure that they are within
+     * those bounds.
+     */
+    class CustomDialog extends JDialog {
+
+        private JLabel heightLabel;
+        private JLabel widthLabel;
+        private JLabel minesLabel;
+        private JTextField heightText;
+        private JTextField widthText;
+        private JTextField minesText;
+        private JButton okButton;
+        private JButton cancelButton;
+        private JPanel customPanel;
+
+        public CustomDialog(JFrame frame) {
+            super(frame, true);
+            customPanel = new JPanel();
+            customPanel.setLayout(new GridLayout(4, 2, 5, 5));
+            customPanel.setPreferredSize(new Dimension(231, 194));
+            customPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+            heightLabel = new JLabel("Height", JLabel.CENTER);
+            widthLabel = new JLabel("Width", JLabel.CENTER);
+            minesLabel = new JLabel("Number of Mines", JLabel.CENTER);
+            heightText = new JTextField(2);
+            heightText.setText(Integer.toString(boardHeight));
+            widthText = new JTextField(2);
+            widthText.setText(Integer.toString(boardWidth));
+            minesText = new JTextField(3);
+            minesText.setText(Integer.toString(numOfMines));
+
+            okButton = new JButton("OK");
+            okButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            okButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    int h, w, n;
+
+                    try {
+                        h = Integer.parseInt(heightText.getText());
+                        w = Integer.parseInt(widthText.getText());
+                        n = Integer.parseInt(minesText.getText());
+                    } //If the input is invalid, the squaresGrid remains as is
+                    catch (NumberFormatException nfe) {
+                        setVisible(false);
+                        createNewBoard();
+                        return;
+                    }
+
+                    //Checks limits for height, width, number of mines. If the height or
+                    //width is too low, it selects the lower bound; too high, and the
+                    //upper bound is chosen. Mine count can be from 10 to the product of
+                    //(height - 1) and (width - 1).
+                    h = Math.min(h, 24);
+                    h = Math.max(h, 9);
+                    w = Math.min(w, 30);
+                    w = Math.max(w, 9);
+                    n = Math.min(n, ((h - 1) * (w - 1)));
+                    n = Math.max(n, 10);
+
+                    //Set height, width, mine count, type for squaresGrid
+                    boardHeight = h;
+                    boardWidth = w;
+                    numOfMines = n;
+                    //setType(3);
+
+                    setVisible(false);
+                    startNewGame();
+                }
+            });
+
+            cancelButton = new JButton("Cancel");
+            cancelButton.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+            cancelButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    setVisible(false);
+                    startNewGame();
+                }
+            });
+
+            customPanel.add(heightLabel);
+            customPanel.add(heightText);
+            customPanel.add(widthLabel);
+            customPanel.add(widthText);
+            customPanel.add(minesLabel);
+            customPanel.add(minesText);
+            customPanel.add(okButton);
+            customPanel.add(cancelButton);
+            add(customPanel);
+            pack();
+        }
+
+        public void setDialogFields() {
+            //Set height, width, mine count for this dialog
+            heightText.setText(Integer.toString(boardHeight));
+            widthText.setText(Integer.toString(boardWidth));
+            minesText.setText(Integer.toString(numOfMines));
+        }
     }
 }
