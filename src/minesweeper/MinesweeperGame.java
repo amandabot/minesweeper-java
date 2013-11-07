@@ -723,7 +723,7 @@ public class MinesweeperGame {
                     numOfMines = n;
                     //setType(3);
 
-                    setGameType("custom");
+                    gameType = "custom";
                     setVisible(false);
                     startNewGame();
                 }
