@@ -124,6 +124,7 @@ public class MinesweeperGame {
         }
         createNewBoard();
         packAndShowFrame();
+        saveSettings();
     }
 
     /**
@@ -407,13 +408,14 @@ public class MinesweeperGame {
                     || temp.equalsIgnoreCase("expert")) {
                 setGameType(temp);
             } else if (temp.equalsIgnoreCase("custom")) {
-                boardHeight = Integer.parseInt(typesAndScores[0]);
-                boardWidth = Integer.parseInt(typesAndScores[1]);
-                numOfMines = Integer.parseInt(typesAndScores[2]);
+                setGameType(temp);
+                boardHeight = Integer.parseInt(typesAndScores[1]);
+                boardWidth = Integer.parseInt(typesAndScores[2]);
+                numOfMines = Integer.parseInt(typesAndScores[3]);
             }
-            bestScores.put("beginner", Integer.parseInt(typesAndScores[3]));
-            bestScores.put("intermediate", Integer.parseInt(typesAndScores[4]));
-            bestScores.put("expert", Integer.parseInt(typesAndScores[5]));
+            bestScores.put("beginner", Integer.parseInt(typesAndScores[4]));
+            bestScores.put("intermediate", Integer.parseInt(typesAndScores[5]));
+            bestScores.put("expert", Integer.parseInt(typesAndScores[6]));
         } catch (NumberFormatException | FileNotFoundException e) {
             //In case of a parse error or file reading error, the default game 
             //type is beginner. The best scores are initialized to default values as
@@ -445,7 +447,7 @@ public class MinesweeperGame {
         gameSettings.put("beginner", new Integer[]{9, 9, 10});
         gameSettings.put("intermediate", new Integer[]{16, 16, 40});
         gameSettings.put("expert", new Integer[]{16, 30, 99});
-        gameSettings.put("custom", new Integer[]{16, 30, 40});
+        gameSettings.put("custom", new Integer[]{24, 30, 40});
 
         bestScores = new HashMap<>();
         bestScores.put("beginner", new Integer(999));
@@ -721,6 +723,7 @@ public class MinesweeperGame {
                     numOfMines = n;
                     //setType(3);
 
+                    setGameType("custom");
                     setVisible(false);
                     startNewGame();
                 }
