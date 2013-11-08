@@ -54,7 +54,7 @@ public class MinesweeperGame {
     private JPanel buttonLayer; //Covers the labelPanel to hide mines, etc.
     private JLayeredPane layeredPane; //Holds the button and label panels
     private CustomDialog customGameDialog; //Allows for the creation of a custom game
-    private JLabel timerLabel; //Displays the elapsed play time
+    private JButton timerButton; //Displays the elapsed play time
     private int boardHeight;
     private int boardWidth;
     private int numOfMines;
@@ -94,7 +94,7 @@ public class MinesweeperGame {
         first = true;
         currentTime = 0;
 
-        timerLabel.setText(String.format("%d", currentTime));
+        timerButton.setText(String.format("%d", currentTime));
         unclickedSquares = (boardHeight * boardWidth) - numOfMines;
         squaresGrid = new Square[boardHeight][boardWidth];
         for (int i = 0; i < boardHeight; i++) {
@@ -156,7 +156,7 @@ public class MinesweeperGame {
      */
     public void createNewBoard() {
         //Remove previous components and resize panels for new game
-        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 25));
+        timerPanel.setPreferredSize(new Dimension(boardWidth * SQUARE_SIZE, 40));
         buttonLayer.removeAll();
         buttonLayer.setLayout(new GridLayout(boardHeight, boardWidth));
         buttonLayer.setBounds(0, 0, boardWidth * SQUARE_SIZE, boardHeight * SQUARE_SIZE);
@@ -290,7 +290,7 @@ public class MinesweeperGame {
             if (bestScores.get(gameType) > currentTime) {
                 bestScores.put(gameType, currentTime);
             }
-            timerLabel.setText(String.format("You Win!: %d", currentTime));
+            timerButton.setText(String.format("You Win!: %d", currentTime));
             saveSettings();
         }
     }
@@ -303,7 +303,7 @@ public class MinesweeperGame {
     private void processMine(Square square) {
         timer.stop();
         gameOver = true;
-        timerLabel.setText(String.format("Game Over!: %d", currentTime));
+        timerButton.setText(String.format("Game Over!: %d", currentTime));
 
         //Removes the buttons over any mine on the board
         for (int row = 0; row < boardHeight; row++) {
@@ -478,7 +478,7 @@ public class MinesweeperGame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 currentTime = Math.min(999, currentTime + 1);
-                timerLabel.setText(String.format("%d", currentTime));
+                timerButton.setText(String.format("%d", currentTime));
             }
         });
         timer.setInitialDelay(0);
@@ -609,8 +609,15 @@ public class MinesweeperGame {
     private JPanel initializeGamePanel() {
         timerPanel = new JPanel();
         timerPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-        timerLabel = new JLabel("000");
-        timerPanel.add(timerLabel);
+        timerButton = new JButton("000");
+        timerButton.setFocusable(false);
+        timerButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startNewGame();
+            }
+        });
+        timerPanel.add(timerButton);
 
         buttonLayer = new JPanel();
         buttonLayer.setOpaque(false);
